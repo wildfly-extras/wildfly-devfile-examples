@@ -1,6 +1,20 @@
 # Compiled class file
 *.class
 
+# Maven generated target folders
+target
+
+# IDEA files
+*.iml
+*.ipr
+*.iws
+.idea
+
+# NetBeans files
+nbactions.xml
+nb-configuration.xml
+catalog.xml
+
 # Log file
 *.log
 
@@ -21,4 +35,5 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
-replay_pid*
+
+.odo

@@ -1,0 +1,115 @@
+schemaVersion: 2.2.0
+metadata:
+  name: wildfly-numberguess
+  version: 2.0.0
+  website: https://wildfly.org
+  displayName: WildFly Numberguess
+  description: Upstream WildFly Numberguess Quickstart
+  icon: https://design.jboss.org/wildfly/logo/final/wildfly_logomark.svg
+  tags: ['Java', 'WildFly']
+  projectType: 'wildfly'
+  language: 'java'
+components:
+  - name: wildfly
+    container:
+      image: quay.io/wildfly/wildfly-s2i:latest
+      memoryLimit: 1512Mi
+      mountSources: true
+      volumeMounts:
+        - name: m2-repository
+          path: /home/jboss/.m2/repository
+      env:
+        - name: GC_METASPACE_SIZE
+          value: '96'
+        - name: JAVA_OPTS
+          value: '-Djava.security.egd=file:/dev/urandom'
+        - name: MVN_ARGS_APPEND
+          value: '-s /home/jboss/.m2/settings.xml -Dmaven.repo.local=/home/jboss/.m2/repository -Dcom.redhat.xpaas.repo.jbossorg'
+        - name: DEBUG_PORT
+          value: "5005"
+      endpoints:
+        - name: debug
+          exposure: internal
+          protocol: tcp
+          targetPort: 5005
+        - name: 'http'
+          protocol: http
+          targetPort: 8080
+          exposure: public
+        - name: 'management'
+          targetPort: 9990
+          protocol: http
+          exposure: internal
+        - name: 'transaction'
+          protocol: tcp
+          targetPort: 4172
+          exposure: internal
+  - name: image-build
+    image:
+      imageName: quay.io/ehugonne/numberguess:latest
+      dockerfile:
+        uri: Containerfile
+        buildContext: .
+        rootRequired: false
+  - name: kubernetes-deploy
+    attributes:
+      deployment/replicas: 1
+      deployment/cpuLimit: '100m'
+      deployment/cpuRequest: 10m
+      deployment/memoryLimit: 300Mi
+      deployment/memoryRequest: 180Mi
+      deployment/container-port: 8081
+    kubernetes:
+      uri: deploy.yaml
+      endpoints:
+        - name: http-8081
+          targetPort: 8081
+          path: /
+  - name: m2-repository
+    volume:
+      size: 3Gi
+commands:
+  - id: debug
+    exec:
+      label: "Package and start the application in debug mode."
+      component: wildfly
+      commandLine: mvn ${MVN_ARGS_APPEND} -Pprovisioned-server -Dwildfly.javaOpts="-Djboss.node.name=numberguess -agentlib:jdwp=transport=dt_socket,address=0.0.0.0:${DEBUG_PORT},server=y,suspend=n" clean package org.wildfly.plugins:wildfly-maven-plugin:dev
+      workingDir: ${PROJECT_SOURCE}
+      hotReloadCapable: true
+      group:
+        kind: debug
+        isDefault: true
+  - id: package
+    exec:
+      label: "Build the application."
+      component: wildfly
+      commandLine: mvn ${MVN_ARGS_APPEND} -Pprovisioned-server clean package
+      workingDir: ${PROJECT_SOURCE}
+      hotReloadCapable: true
+      group:
+        kind: build
+        isDefault: true
+  - id: run
+    exec:
+      label: "Build the application."
+      component: wildfly
+      commandLine: mvn ${MVN_ARGS_APPEND} -Popenshift -Dwildfly.javaOpts="-Djboss.node.name=numberguess" -Dmaven.test.skip=true clean package org.wildfly.plugins:wildfly-maven-plugin:dev
+      workingDir: ${PROJECT_SOURCE}
+      hotReloadCapable: true
+      group:
+        kind: run
+        isDefault: true
+  - id: build-image
+    apply:
+      component: image-build
+  - id: deployk8s
+    apply:
+      component: kubernetes-deploy
+  - id: deploy
+    composite:
+      commands:
+        - build-image
+        - deployk8s
+      group:
+        kind: deploy
+        isDefault: true
