@@ -1,0 +1,86 @@
+schemaVersion: 2.2.0
+metadata:
+  name: wildfly-start
+  version: 2.0.0
+  website: https://wildfly.org
+  displayName: WildFly Getting Started
+  description: Upstream WildFly Getting Started
+  icon: https://design.jboss.org/wildfly/logo/final/wildfly_logomark.svg
+  tags: ['Java', 'WildFly']
+  projectType: 'wildfly'
+  language: 'java'
+starterProjects:
+  - name: getting-started
+    description: WildFly Getting Started
+    git:
+      checkoutFrom:
+        remote: wildfly-devfile-examples
+        revision: getting-started
+      remotes:
+        wildfly-devfile-examples: https://github.com/wildfly-extras/wildfly-devfile-examples.git
+components:
+  - name: tools
+    container:
+      image:  quay.io/devfile/universal-developer-image:ubi8-c0b5f15
+      memoryLimit: 1512Mi
+      mountSources: true
+      volumeMounts:
+        - name: m2-repository
+          path: /home/user/.m2/repository
+      env:
+        - name: JAVA_OPTS
+          value: '-Djava.security.egd=file:/dev/urandom'
+        - name: DEBUG_PORT
+          value: "5005"
+      endpoints:
+        - name: debug
+          exposure: internal
+          protocol: tcp
+          targetPort: 5005
+        - name: 'http'
+          protocol: http
+          targetPort: 8080
+          exposure: public
+        - name: 'management'
+          targetPort: 9990
+          protocol: http
+          exposure: internal
+        - name: 'transaction'
+          protocol: tcp
+          targetPort: 4172
+          exposure: internal
+  - name: m2-repository
+    volume:
+      size: 3Gi
+commands:
+  - id: debug
+    exec:
+      label: "Build and run the application in debug mode."
+      component: wildfly
+      commandLine: mvn ${MVN_ARGS_APPEND} -Pprovisioned-server -Dwildfly.javaOpts="-Djboss.node.name=${NODE_NAME} -agentlib:jdwp=transport=dt_socket,address=0.0.0.0:${DEBUG_PORT},server=y,suspend=n" clean package org.wildfly.plugins:wildfly-maven-plugin:dev
+      workingDir: ${PROJECT_SOURCE}
+      hotReloadCapable: true
+      group:
+        kind: debug
+        isDefault: true
+  - id: package
+    exec:
+      label: "Package the application."
+      component: wildfly
+      commandLine: mvn ${MVN_ARGS_APPEND} -Pprovisioned-server clean package
+      workingDir: ${PROJECT_SOURCE}
+      hotReloadCapable: true
+      group:
+        kind: build
+        isDefault: true
+  - id: run
+    exec:
+      label: "Build and run the application in dev mode."
+      component: wildfly
+      commandLine: mvn ${MVN_ARGS_APPEND} -Popenshift -Dwildfly.javaOpts="-Djboss.node.name=${NODE_NAME}" -Dmaven.test.skip=true clean package org.wildfly.plugins:wildfly-maven-plugin:dev
+      workingDir: ${PROJECT_SOURCE}
+      hotReloadCapable: true
+      group:
+        kind: run
+        isDefault: true
+
