@@ -30,9 +30,11 @@ components:
           path: /home/user/.m2
       env:
         - name: JAVA_OPTS
-          value: '-Djava.security.egd=file:/dev/urandom'
+          value: '-Djava.security.egd=file:/dev/urandom -Djboss.host.name=localhost'
         - name: DEBUG_PORT
           value: "5005"
+        - name: NODE_NAME
+          value: 'getting-started'
       endpoints:
         - name: debug
           exposure: internal
@@ -58,18 +60,18 @@ commands:
     exec:
       label: "Build and run the application in debug mode."
       component: tools
-      commandLine: mvn ${MVN_ARGS_APPEND} -Pprovisioned-server -Dwildfly.javaOpts="-Djboss.node.name=${NODE_NAME} -agentlib:jdwp=transport=dt_socket,address=0.0.0.0:${DEBUG_PORT},server=y,suspend=n" clean package org.wildfly.plugins:wildfly-maven-plugin:dev
-      workingDir: ${PROJECT_SOURCE}
+      commandLine: mvn -Dwildfly.javaOpts="-Djboss.host.name=localhost -agentlib:jdwp=transport=dt_socket,address=*:5005,server=y,suspend=n" -Dmaven.test.skip=true clean package org.wildfly.plugins:wildfly-maven-plugin:dev
+      workingDir: ${PROJECT_SOURCE}/getting-started
       hotReloadCapable: true
       group:
         kind: debug
         isDefault: true
   - id: package
     exec:
-      label: "Package the application."
+      label: "Build the application."
       component: tools
-      commandLine: mvn ${MVN_ARGS_APPEND} -Pprovisioned-server clean package
-      workingDir: ${PROJECT_SOURCE}
+      commandLine: mvn clean verfify
+      workingDir: ${PROJECT_SOURCE}/getting-started
       hotReloadCapable: true
       group:
         kind: build
@@ -78,8 +80,8 @@ commands:
     exec:
       label: "Build and run the application in dev mode."
       component: tools
-      commandLine: mvn ${MVN_ARGS_APPEND} -Popenshift -Dwildfly.javaOpts="-Djboss.node.name=${NODE_NAME}" -Dmaven.test.skip=true clean package org.wildfly.plugins:wildfly-maven-plugin:dev
-      workingDir: ${PROJECT_SOURCE}
+      commandLine: mvn -Dwildfly.javaOpts="-Djboss.host.name=localhost" -Dmaven.test.skip=true clean package org.wildfly.plugins:wildfly-maven-plugin:dev
+      workingDir: ${PROJECT_SOURCE}/getting-started
       hotReloadCapable: true
       group:
         kind: run
