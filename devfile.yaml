@@ -21,12 +21,13 @@ starterProjects:
 components:
   - name: tools
     container:
-      image:  quay.io/devfile/universal-developer-image:ubi8-c0b5f15
+      #image:  quay.io/devfile/universal-developer-image:ubi8-c0b5f15
+      image: registry.redhat.io/devspaces/udi-rhel8:3.7
       memoryLimit: 1512Mi
       mountSources: true
       volumeMounts:
-        - name: m2-repository
-          path: /home/user/.m2/repository
+        - name: m2
+          path: /home/user/.m2
       env:
         - name: JAVA_OPTS
           value: '-Djava.security.egd=file:/dev/urandom'
@@ -49,14 +50,14 @@ components:
           protocol: tcp
           targetPort: 4172
           exposure: internal
-  - name: m2-repository
+  - name: m2
     volume:
       size: 3Gi
 commands:
   - id: debug
     exec:
       label: "Build and run the application in debug mode."
-      component: wildfly
+      component: tools
       commandLine: mvn ${MVN_ARGS_APPEND} -Pprovisioned-server -Dwildfly.javaOpts="-Djboss.node.name=${NODE_NAME} -agentlib:jdwp=transport=dt_socket,address=0.0.0.0:${DEBUG_PORT},server=y,suspend=n" clean package org.wildfly.plugins:wildfly-maven-plugin:dev
       workingDir: ${PROJECT_SOURCE}
       hotReloadCapable: true
@@ -66,7 +67,7 @@ commands:
   - id: package
     exec:
       label: "Package the application."
-      component: wildfly
+      component: tools
       commandLine: mvn ${MVN_ARGS_APPEND} -Pprovisioned-server clean package
       workingDir: ${PROJECT_SOURCE}
       hotReloadCapable: true
@@ -76,7 +77,7 @@ commands:
   - id: run
     exec:
       label: "Build and run the application in dev mode."
-      component: wildfly
+      component: tools
       commandLine: mvn ${MVN_ARGS_APPEND} -Popenshift -Dwildfly.javaOpts="-Djboss.node.name=${NODE_NAME}" -Dmaven.test.skip=true clean package org.wildfly.plugins:wildfly-maven-plugin:dev
       workingDir: ${PROJECT_SOURCE}
       hotReloadCapable: true
