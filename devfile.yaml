@@ -68,7 +68,7 @@ commands:
         isDefault: false
   - id: debug
     exec:
-      label: "Build and run the application in debug mode."
+      label: "Build and debug the application in dev mode."
       component: tools
       commandLine: mvn -s ${PROJECT_SOURCE}/settings.xml -Dwildfly.javaOpts="-Djboss.host.name=localhost -agentlib:jdwp=transport=dt_socket,address=*:5005,server=y,suspend=n" -Dmaven.test.skip=true clean package org.wildfly.plugins:wildfly-maven-plugin:dev
       workingDir: ${PROJECT_SOURCE}/getting-started
@@ -80,7 +80,7 @@ commands:
     exec:
       label: "Build the application."
       component: tools
-      commandLine: mvn -s ${PROJECT_SOURCE}/settings.xml clean verify
+      commandLine: mvn clean verify
       workingDir: ${PROJECT_SOURCE}/getting-started
       hotReloadCapable: true
       group:
