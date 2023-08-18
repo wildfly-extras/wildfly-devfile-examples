@@ -32,8 +32,12 @@ components:
         - name: JAVA_OPTS
           value: '-Djava.security.egd=file:/dev/urandom -Djboss.host.name=localhost'
         - name: DEBUG_PORT
-          value: "5005"
+          value: '5005'
         - name: NODE_NAME
+          value: 'getting-started'
+        - name: OPENSHIFT_IMAGE_REGISTRY
+          value: 'image-registry.openshift-image-registry.svc:5000'
+        - name: IMAGE
           value: 'getting-started'
       endpoints:
         - name: debug
@@ -56,32 +60,12 @@ components:
     volume:
       size: 3Gi
 commands:
-  - id: initialize
-    exec:
-      label: "Initialize the application."
-      component: tools
-      commandLine: mvn -s ${PROJECT_SOURCE}/settings.xml archetype:generate -DarchetypeGroupId=org.wildfly.archetype -DarchetypeArtifactId=wildfly-getting-started-archetype -DarchetypeVersion=28.0.0.Final-SNAPSHOT
-      workingDir: ${PROJECT_SOURCE}
-      hotReloadCapable: true
-      group:
-        kind: build
-        isDefault: false
-  - id: debug
-    exec:
-      label: "Build and debug the application in dev mode."
-      component: tools
-      commandLine: mvn -s ${PROJECT_SOURCE}/settings.xml -Dwildfly.javaOpts="-Djboss.host.name=localhost -agentlib:jdwp=transport=dt_socket,address=*:5005,server=y,suspend=n" -Dmaven.test.skip=true clean package org.wildfly.plugins:wildfly-maven-plugin:dev
-      workingDir: ${PROJECT_SOURCE}/getting-started
-      hotReloadCapable: true
-      group:
-        kind: debug
-        isDefault: true
   - id: package
     exec:
       label: "Build the application."
       component: tools
       commandLine: mvn clean verify
-      workingDir: ${PROJECT_SOURCE}/getting-started
+      workingDir: ${PROJECT_SOURCE}
       hotReloadCapable: true
       group:
         kind: build
@@ -90,10 +74,56 @@ commands:
     exec:
       label: "Build and run the application in dev mode."
       component: tools
-      commandLine: mvn -s ${PROJECT_SOURCE}/settings.xml -Dwildfly.javaOpts="-Djboss.host.name=localhost" -Dmaven.test.skip=true clean package org.wildfly.plugins:wildfly-maven-plugin:dev
-      workingDir: ${PROJECT_SOURCE}/getting-started
+      commandLine: mvn -Dwildfly.javaOpts="-Djboss.host.name=${NODE_NAME}" -Dmaven.test.skip=true clean package org.wildfly.plugins:wildfly-maven-plugin:dev
+      workingDir: ${PROJECT_SOURCE}
       hotReloadCapable: true
       group:
         kind: run
         isDefault: true
+  - id: debug
+    exec:
+      label: "Build and debug the application in dev mode."
+      component: tools
+      commandLine: mvn -Dwildfly.javaOpts="-Djboss.host.name=${NODE_NAME} -agentlib:jdwp=transport=dt_socket,address=*:5005,server=y,suspend=n" -Dmaven.test.skip=true clean package org.wildfly.plugins:wildfly-maven-plugin:dev
+      workingDir: ${PROJECT_SOURCE}
+      hotReloadCapable: true
+      group:
+        kind: debug
+        isDefault: true
+  - id: build-runtime-image
+    exec:
+      label: "Openshift 01 - Build Runtime Image."
+      component: tools
+      commandLine: "mvn -Dmaven.test.skip=true clean package && export OPENSHIFT_NS=$(oc project -q) && podman build -f Containerfile -t ${OPENSHIFT_IMAGE_REGISTRY}/${OPENSHIFT_NS}/${IMAGE} ."
+      workingDir: ${PROJECT_SOURCE}
+      group:
+        kind: build
+        isDefault: false
+  - id: push-image
+    exec:
+      label: "Openshift 02 - Push Image into OpenShift registry."
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: "export OPENSHIFT_NS=$(oc project -q) && podman tag ${OPENSHIFT_IMAGE_REGISTRY}/${OPENSHIFT_NS}/${IMAGE} ${OPENSHIFT_IMAGE_REGISTRY}/${OPENSHIFT_NS}/${IMAGE}:latest && podman login --tls-verify=false -u kubeadmin -p $(oc whoami -t) ${OPENSHIFT_IMAGE_REGISTRY} && oc login --token=$(oc whoami -t) && podman push --tls-verify=false ${OPENSHIFT_IMAGE_REGISTRY}/${OPENSHIFT_NS}/${IMAGE}:latest"
+      group:
+        kind: build
+        isDefault: false
+  - id: deploy-image
+    exec:
+      label: "Openshift 03 - Deploy Image into OpenShift."
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: "helm repo add wildfly https://docs.wildfly.org/wildfly-charts/ && oc set image-lookup ${IMAGE} && helm install ${IMAGE} -f .charts/helm.yaml --set build.enabled=false --set image.name=${IMAGE} wildfly/wildfly"
+      group:
+        kind: run
+        isDefault: false
+  - id: undeploy-image
+    exec:
+      label: "Undeploy Image from OpenShift."
+      component: tools
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: "helm uninstall ${IMAGE}"
+      group:
+        kind: run
+        isDefault: false
 
