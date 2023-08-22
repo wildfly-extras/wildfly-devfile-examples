@@ -41,6 +41,19 @@ mvn clean package verify
 
 Tests in `src/test` are run against the server in `target/server`.
 
+== Deploying on Kubernetes
+
+We need to create a secret to hold the credentials to be able to upload to the image registry:
+
+[source,shell]
+----
+kubectl delete secret quay-secret --namespace $user_namespace
+kubectl create secret generic quay-secret --namespace $user_namespace --from-literal=IMAGE_REGISTRY_PASSWORD=******** --from-literal=IMAGE_REGISTRY_LOGIN=ehugonne@redhat.com --from-literal=IMAGE_REGISTRY_NAMESPACE=ehugonne
+kubectl label secret quay-secret --namespace $user_namespace controller.devfile.io/mount-to-devworkspace=true controller.devfile.io/watch-secret=true
+kubectl annotate secret quay-secret --namespace $user_namespace controller.devfile.io/mount-as='env'
+----
+
+
 == Resources
 
 * https://wildfly.org[WildFly]

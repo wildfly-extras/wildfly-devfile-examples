@@ -4,3 +4,5 @@ build:
   contextDir: numberguess
 deploy:
   replicas: 1
+  route:
+    enabled: false

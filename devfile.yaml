@@ -9,6 +9,8 @@ metadata:
   tags: ['Java', 'WildFly']
   projectType: 'wildfly'
   language: 'java'
+variables:
+  imageRegistry: 'quay.io'
 starterProjects:
   - name: getting-started
     description: WildFly Getting Started
@@ -21,8 +23,8 @@ starterProjects:
 components:
   - name: tools
     container:
-      #image:  quay.io/devfile/universal-developer-image:ubi8-c0b5f15
-      image: registry.redhat.io/devspaces/udi-rhel8:3.7
+      image:  quay.io/devfile/universal-developer-image:ubi8-c0b5f15
+     #image: registry.redhat.io/devspaces/udi-rhel8:3.7
       memoryLimit: 1512Mi
       mountSources: true
       volumeMounts:
@@ -35,8 +37,9 @@ components:
           value: '5005'
         - name: NODE_NAME
           value: 'getting-started'
-        - name: OPENSHIFT_IMAGE_REGISTRY
-          value: 'image-registry.openshift-image-registry.svc:5000'
+        - name: IMAGE_REGISTRY
+          value: '{{imageRegistry}}'
+          #value: 'image-registry.openshift-image-registry.svc:5000'
         - name: IMAGE
           value: 'getting-started'
       endpoints:
@@ -94,7 +97,7 @@ commands:
     exec:
       label: "Openshift 01 - Build Runtime Image."
       component: tools
-      commandLine: "mvn -Dmaven.test.skip=true clean package && export OPENSHIFT_NS=$(oc project -q) && podman build -f Containerfile -t ${OPENSHIFT_IMAGE_REGISTRY}/${OPENSHIFT_NS}/${IMAGE} ."
+      commandLine: "mvn -Dmaven.test.skip=true clean package && podman build -f Containerfile -t ${IMAGE_REGISTRY}/${IMAGE_REGISTRY_NAMESPACE}/${IMAGE} ."
       workingDir: ${PROJECT_SOURCE}
       group:
         kind: build
@@ -104,7 +107,7 @@ commands:
       label: "Openshift 02 - Push Image into OpenShift registry."
       component: tools
       workingDir: ${PROJECT_SOURCE}
-      commandLine: "export OPENSHIFT_NS=$(oc project -q) && podman tag ${OPENSHIFT_IMAGE_REGISTRY}/${OPENSHIFT_NS}/${IMAGE} ${OPENSHIFT_IMAGE_REGISTRY}/${OPENSHIFT_NS}/${IMAGE}:latest && podman login --tls-verify=false -u kubeadmin -p $(oc whoami -t) ${OPENSHIFT_IMAGE_REGISTRY} && oc login --token=$(oc whoami -t) && podman push --tls-verify=false ${OPENSHIFT_IMAGE_REGISTRY}/${OPENSHIFT_NS}/${IMAGE}:latest"
+      commandLine: "podman tag ${IMAGE_REGISTRY}/${IMAGE_REGISTRY_NAMESPACE}/${IMAGE} ${IMAGE_REGISTRY}/${IMAGE_REGISTRY_NAMESPACE}/${IMAGE}:latest && podman login  ${IMAGE_REGISTRY} -u ${IMAGE_REGISTRY_LOGIN} -p ${IMAGE_REGISTRY_PASSWORD} && podman push --tls-verify=false ${IMAGE_REGISTRY}/${IMAGE_REGISTRY_NAMESPACE}/${IMAGE}:latest"
       group:
         kind: build
         isDefault: false
