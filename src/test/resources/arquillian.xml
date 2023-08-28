@@ -22,6 +22,7 @@
     <container default="true" qualifier="managed">
         <configuration>
             <property name="jbossHome">target/server</property>
+            <property name="javaVmArguments">-Djboss.node.name=${env.NODE_NAME}</property>
         </configuration>
     </container>
 </arquillian>
