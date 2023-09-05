@@ -16,7 +16,7 @@ RUN mvn $MVN_ARGS_APPEND -Popenshift -Dmaven.test.skip=true clean package
 
 FROM quay.io/wildfly/wildfly-runtime:$IMAGE_VERSION AS runtime
 
-ENV SERVER_ARGS=-Djboss.http.port=8081
+ENV SERVER_ARGS=-Djboss.http.port=8080
 COPY --chown=jboss:root --from=builder  /build/target/server $JBOSS_HOME
 RUN chmod -R ug+rwX $JBOSS_HOME 
-EXPOSE 8081
+EXPOSE 8080
