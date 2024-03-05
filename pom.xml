@@ -26,24 +26,25 @@
     <description>Insert description for your project here.</description>
 
     <properties>
-        <!-- Explicitly declaring the source encoding eliminates the following 
-        message: -->
-        <!-- [WARNING] Using platform encoding (UTF-8 actually) to copy filtered 
-        resources, i.e. build is platform dependent! -->
+        <!-- Explicitly declaring the source encoding eliminates the following
+            message: -->
+        <!-- [WARNING] Using platform encoding (UTF-8 actually) to copy filtered
+            resources, i.e. build is platform dependent! -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- JBoss dependency versions -->
-        <version.wildfly.maven.plugin>4.2.0.Final</version.wildfly.maven.plugin>
+        <version.wildfly.maven.plugin>4.2.1.Final</version.wildfly.maven.plugin>
+        <version.wildfly.bom>31.0.0.Final</version.wildfly.bom>
+        <version.wildfly.cloud.galleon.pack>6.0.0.Final</version.wildfly.cloud.galleon.pack>
 
-        <!-- Define the version of the JBoss BOMs we want to import to specify tested stacks. -->
-        <version.jboss.bom>29.0.1.Final</version.jboss.bom>
-        <version.cloud.fp>4.0.0.Final</version.cloud.fp>
+        <!--Use JUnit 5 here - the WildFly bom still brings 4.x -->
+        <version.junit5>5.10.1</version.junit5>
 
         <!-- other plugin versions -->
-        <version.compiler.plugin>3.9.0</version.compiler.plugin>
-        <version.surefire.plugin>2.22.2</version.surefire.plugin>
-        <version.failsafe.plugin>2.22.2</version.failsafe.plugin>
-        <version.war.plugin>3.3.2</version.war.plugin>
+        <version.compiler.plugin>3.12.1</version.compiler.plugin>
+        <version.surefire.plugin>3.0.0</version.surefire.plugin>
+        <version.failsafe.plugin>3.2.5</version.failsafe.plugin>
+        <version.war.plugin>3.4.0</version.war.plugin>
 
         <!-- maven-compiler-plugin -->
         <maven.compiler.release>11</maven.compiler.release>
@@ -79,20 +80,30 @@
     <dependencyManagement>
         <dependencies>
             <!-- JBoss distributes a complete set of Jakarta EE APIs including
-            a Bill of Materials (BOM). A BOM specifies the versions of a "stack" (or 
-            a collection) of artifacts. We use this here so that we always get the correct 
-            versions of artifacts (you can read this as the WildFly stack of the Jakarta EE APIs,
-            with some extras tools for your project, such as Arquillian for testing) -->
+                a Bill of Materials (BOM). A BOM specifies the versions of a "stack" (or
+                a collection) of artifacts. We use this here so that we always get the correct
+                versions of artifacts (you can read this as the WildFly stack of the Jakarta EE APIs,
+                with some extras tools for your project, such as Arquillian for testing) -->
             <dependency>
                 <groupId>org.wildfly.bom</groupId>
                 <artifactId>wildfly-ee-with-tools</artifactId>
-                <version>${version.jboss.bom}</version>
+                <version>${version.wildfly.bom}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--Define the JUnit5 bom. WildFly BOM still contains JUnit4, so we have to declare a version here -->
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>5.10.1</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
 	
+    
     <dependencies>
 
         <!-- Import the CDI API, we use provided scope as the API is included in WildFly -->
@@ -108,24 +119,18 @@
             <artifactId>jakarta.ws.rs-api</artifactId>
             <scope>provided</scope>
         </dependency>
- 
+
         <!-- Test scope dependencies -->
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
-        
+
         <dependency>
-            <groupId>org.jboss.arquillian.junit</groupId>
-            <artifactId>arquillian-junit-container</artifactId>
+            <groupId>org.jboss.arquillian.junit5</groupId>
+            <artifactId>arquillian-junit5-container</artifactId>
             <scope>test</scope>
-        </dependency>
-      
-        <dependency>
-            <groupId>org.jboss.arquillian.protocol</groupId>
-            <artifactId>arquillian-protocol-servlet</artifactId>
-            <scope>test</scope>               
         </dependency>
 
         <dependency>
@@ -172,7 +177,7 @@
                 <configuration>
                     <feature-packs>
                         <feature-pack>
-                            <location>org.wildfly:wildfly-galleon-pack:${version.jboss.bom}</location>
+                            <location>org.wildfly:wildfly-galleon-pack:${version.wildfly.bom}</location>
                         </feature-pack>
                         <feature-pack>
                             <location>org.wildfly.cloud:wildfly-cloud-galleon-pack:${version.wildfly.cloud.galleon.pack}</location>
